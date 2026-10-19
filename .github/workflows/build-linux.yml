@@ -1,0 +1,12 @@
+name: Build official ORB-SLAM3 on Ubuntu
+on: workflow_dispatch
+jobs:
+  compile:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile pinned official backend and custom export runner
+        env:
+          JOBS: '2'
+        run: bash scripts/bootstrap_autodl.sh

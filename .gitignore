@@ -1,0 +1,11 @@
+third_party/
+reference/
+build/
+outputs/
+datasets/
+.venv/
+__pycache__/
+*.py[cod]
+*.partial*
+.DS_Store
+.env

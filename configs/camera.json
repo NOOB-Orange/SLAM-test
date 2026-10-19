@@ -1,0 +1,19 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fx": 559.94053152396134,
+  "fy": 559.94053152396134,
+  "cx": 640.0,
+  "cy": 360.0,
+  "k1": -0.0091275795262995545,
+  "k2": 0.0,
+  "p1": 0.0,
+  "p2": 0.0,
+  "k3": 0.0,
+  "n_features": 2500,
+  "scale_factor": 1.2,
+  "n_levels": 8,
+  "ini_fast": 20,
+  "min_fast": 7,
+  "provenance": "Initial intrinsics from existing COLMAP SIMPLE_RADIAL calibration; no COLMAP poses or points are used. Not an independent physical calibration."
+}
