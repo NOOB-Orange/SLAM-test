@@ -7,6 +7,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import cv2
 import numpy as np
@@ -140,6 +141,42 @@ class PipelineTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Unsafe archive path'):
                 module.extract_archive(archive, root/'target')
             self.assertFalse((root/'escape').exists())
+
+    def test_offline_archive_skips_network_and_checks_checksum(self):
+        spec = importlib.util.spec_from_file_location('fetch_offline', ROOT/'scripts/fetch_dependencies.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            module.ROOT = root
+            (root/'vendor').mkdir()
+            archive = root/'vendor/source.tar.gz'
+            import io
+            with tarfile.open(archive, 'w:gz') as tar:
+                payload = b'original source\n'
+                member = tarfile.TarInfo('official/include/System.h')
+                member.size = len(payload)
+                tar.addfile(member, io.BytesIO(payload))
+            item = {'repository': 'https://github.com/UZ-SLAMLab/ORB_SLAM3', 'ref': 'fixed-ref',
+                    'bundled_archive': 'vendor/source.tar.gz', 'bundled_sha256': module.archive_digest(archive),
+                    'archive_sha256': 'unused-official-hash'}
+            (root/'dependencies.json').write_text(json.dumps({'orb_slam3': item}))
+            # A truncated old cache must not override the verified offline bundle.
+            (root/'third_party').mkdir()
+            (root/'third_party/orb_slam3.tar.gz').write_bytes(b'partial')
+            with patch.object(module, 'urlopen', side_effect=AssertionError('Network must not be used')):
+                module.fetch('orb_slam3')
+                self.assertEqual((root/'third_party/ORB_SLAM3/include/System.h').read_bytes(), payload)
+                self.assertEqual((root/'third_party/ORB_SLAM3/.source-ref').read_text().strip(), 'fixed-ref')
+                # Reusing the complete official archive also works without network.
+                (root/'third_party/orb_slam3.tar.gz').write_bytes(archive.read_bytes())
+                item_without_bundle = dict(item, bundled_archive='vendor/absent.tar.gz',
+                                           archive_sha256=module.archive_digest(archive))
+                cached, _ = module.resolve_archive('orb_slam3', item_without_bundle)
+                self.assertEqual(cached, root/'third_party/orb_slam3.tar.gz')
+                archive.write_bytes(b'corrupt bundle')
+                with self.assertRaisesRegex(ValueError, 'Offline archive checksum mismatch'):
+                    module.resolve_archive('orb_slam3', item)
 
 
 if __name__ == '__main__':

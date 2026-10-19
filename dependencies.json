@@ -2,11 +2,15 @@
   "orb_slam3": {
     "repository": "https://github.com/UZ-SLAMLab/ORB_SLAM3",
     "ref": "4452a3c4ab75b1cde34e5505a36ec3f9edcdc4c4",
-    "archive_sha256": "b69fe1809588a8610580db1d5e6b77c63b5e4b5b47abc16ed839e93fbc7e7ddf"
+    "archive_sha256": "b69fe1809588a8610580db1d5e6b77c63b5e4b5b47abc16ed839e93fbc7e7ddf",
+    "bundled_archive": "vendor/orb_slam3-source.tar.gz",
+    "bundled_sha256": "6b8d18209503d5fb44cf4a5abf6e969cfbf83db55ca976a04f7a4fee721a5e1d"
   },
   "pangolin": {
     "repository": "https://github.com/stevenlovegrove/Pangolin",
     "ref": "v0.8",
-    "archive_sha256": "a680d1b52cd432f93f3359cb8f2179b25acf384d29dbaa2530b2eb3dfe5a81c6"
+    "archive_sha256": "a680d1b52cd432f93f3359cb8f2179b25acf384d29dbaa2530b2eb3dfe5a81c6",
+    "bundled_archive": "vendor/pangolin-source.tar.gz",
+    "bundled_sha256": "a680d1b52cd432f93f3359cb8f2179b25acf384d29dbaa2530b2eb3dfe5a81c6"
   }
 }

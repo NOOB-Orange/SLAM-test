@@ -4,7 +4,7 @@
 
 目标环境：**AutoDL、Ubuntu 22.04、x86_64、至少 16 GB 内存，建议 32 GB**。4090 可以使用，但官方 ORB-SLAM3 核心主要使用 CPU，不会自动使用 CUDA。请选择 CPU 核数和内存充足的实例；此项目不需要 PyTorch、ROS、桌面或 X11 窗口。
 
-原视频已放在 `data/original.mp4`，约 18.7 MB；不需要另外上传视频。官方依赖源码由构建脚本从官方 GitHub 下载，不将巨大的依赖和词袋文件重复上传到本仓库。
+原视频已放在 `data/original.mp4`，约 18.7 MB；不需要另外上传视频。为避免 AutoDL 到 GitHub 的大文件下载中断，`vendor/` 已包含约 43.5 MB 的 ORB-SLAM3 精简源码包（含官方词典）和约 0.7 MB 的 Pangolin 源码包。构建时优先校验并使用这些本地文件，不再要求 AutoDL 下载约 600 MB 的原始官方归档。
 
 ## AutoDL 上直接运行
 
@@ -28,7 +28,7 @@ bash scripts/run_video.sh
 /root/autodl-tmp/SLAM-test/outputs/exhibition/slam_demo.mp4
 ```
 
-可在 AutoDL 文件面板下载。编译需要联网；官方源码压缩包本身约 600 MB，依赖、编译中间文件和图像序列还需数 GB 空间。首次编译耗时取决于网络、CPU 和内存。
+可在 AutoDL 文件面板下载。apt 和 pip 安装仍需要联网；官方后端源码和词典可从仓库内的离线包提取。依赖、编译中间文件和图像序列还需数 GB 空间。首次编译耗时取决于网络、CPU 和内存。
 
 脚本遇到错误会停止，不会把未跟踪成功的片段当作有效轨迹。**本仓库当前只完成了 Windows 下的 Python 管线测试、真实输入抽帧检查、Bash 语法检查和固定版本官方源码补丁检查；没有在本机完成 Ubuntu C++ 编译或真实 ORB-SLAM3 重建，因此不承诺视频能一次跟踪到底。** AutoDL 首次运行会给出实际的编译与跟踪结果。GitHub Actions 中的 `Build official ORB-SLAM3 on Ubuntu` 工作流也可手动触发编译。
 
@@ -87,6 +87,7 @@ data/original.mp4               本次原始视频
 dependencies.json              官方源码版本及压缩包 SHA256
 scripts/bootstrap_autodl.sh     Ubuntu 安装、编译、运行测试
 scripts/fetch_dependencies.py   官方源码下载、校验、安全解压
+scripts/package_dependencies.py 从校验通过的官方归档制作离线包
 scripts/patch_upstream.py       添加导出接口；幂等，不改跟踪/建图算法
 scripts/run_video.sh            完整运行流程
 cpp/mono_video.cc              逐帧输入、跟踪状态记录、无窗口主程序
@@ -96,6 +97,7 @@ export_map.py                  关键帧着色、按子地图打包、跟踪统�
 render_core.py                 相机投影、坐标变换、点精灵深度缓冲
 render_video.py                三栏视频输出，丢失段不插值
 tests/test_pipeline.py         合成数据的管线回归检查
+vendor/*-source.tar.gz          带哈希校验的离线源码和 ORB 词典
 ```
 
 官方接口的一个细节：`SaveTrajectoryTUM()` 在纯单目模式下会直接拒绝保存。本项目提供单独导出接口，不依赖该函数。另一个细节：锁定版本 `Shutdown()` 中等待建图线程的代码被注释，因此导出器在读取最终结果前显式等待并 join 建图/回环线程，避免边优化边导出。
@@ -188,6 +190,10 @@ SLAM_PIP_INDEX_URL=https://pypi.org/simple JOBS=4 bash scripts/bootstrap_autodl.
 ```
 
 `ldconfig ... libnvidia-*.so ... is empty, not checked` 与上述 pip 索引失败属于不同环节。如果安装继续到 pip，说明这些提示没有使本次 apt 阶段停止；仅凭这些信息不能确认容器的 GPU/图形库完整性。不要为解决 NumPy 下载失败删除 NVIDIA 库或重装驱动。后续若 CMake 或动态链接明确报 GL/EGL/NVIDIA 库错误，再根据那条实际错误检查容器环境。
+
+如果旧版日志出现 `http.client.IncompleteRead` 和 `Retry download orb_slam3`，表示 HTTP 下载流在完整源码到达前结束，尚未进入 C++ 编译。旧版脚本每次会重新下载大包，反复运行未必能改善网络线路。更新仓库后，安装应显示 `Using verified offline archive: .../vendor/orb_slam3-source.tar.gz`，跳过这一步网络访问。已完整下载的官方包缓存也会先校验后复用，不会无条件重新下载。
+
+若服务器 `git pull` 也不稳定，可通过 AutoDL 文件面板，把本地项目 `vendor/` 的两个源码包上传到服务器同一目录；同时确保服务器脚本和 `dependencies.json` 已更新。不要把中断的 `.tar.gz` 当成完整源码，脚本会检查 SHA256 后才解压。
 
 本地测试命令：
 

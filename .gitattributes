@@ -5,3 +5,4 @@
 *.h text eol=lf
 *.yaml text eol=lf
 *.mp4 binary
+*.tar.gz binary
