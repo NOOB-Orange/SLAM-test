@@ -17,8 +17,23 @@ if [[ "${EUID}" -eq 0 ]]; then SUDO=(); else SUDO=(sudo); fi
 cd "${ROOT}"
 /usr/bin/python3 -m venv .venv
 PYTHON="${ROOT}/.venv/bin/python"
-"${PYTHON}" -m pip install --upgrade pip
-"${PYTHON}" -m pip install -r requirements.txt
+# AutoDL images may configure an HTTP-only index which pip/network policy rejects.
+# CLI --index-url overrides that default without changing global pip settings.
+PYPI_PRIMARY="${SLAM_PIP_INDEX_URL:-https://mirrors.aliyun.com/pypi/simple}"
+PYPI_FALLBACK="https://pypi.org/simple"
+if [[ "${PYPI_PRIMARY}" == "${PYPI_FALLBACK}" ]]; then
+  PYPI_FALLBACK="https://mirrors.aliyun.com/pypi/simple"
+fi
+install_python_dependencies() {
+  local index="$1"
+  echo "Installing Python dependencies from ${index}"
+  "${PYTHON}" -m pip install --index-url "${index}" --timeout 30 --retries 2 --upgrade pip &&
+    "${PYTHON}" -m pip install --index-url "${index}" --timeout 30 --retries 2 -r "${ROOT}/requirements.txt"
+}
+if ! install_python_dependencies "${PYPI_PRIMARY}"; then
+  echo "Primary Python package index failed; retrying ${PYPI_FALLBACK}" >&2
+  install_python_dependencies "${PYPI_FALLBACK}"
+fi
 "${PYTHON}" scripts/fetch_dependencies.py all
 "${PYTHON}" scripts/patch_upstream.py
 CMAKE_BIN="${CMAKE_BIN:-/usr/bin/cmake}"

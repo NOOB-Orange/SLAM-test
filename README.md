@@ -172,6 +172,23 @@ bash scripts/run_video.sh data/original.mp4 outputs/attempt_02
 
 Python 与 C++ 使用两套 OpenCV：C++ 链接 apt 的 `libopencv-dev`，Python 虚拟环境使用 `opencv-python-headless`，两者无需版本完全相同。
 
+若旧版本安装日志显示 `http://mirrors.aliyun.com/pypi/simple`，随后出现 `numpy ... (from versions: none)`，表示 pip 从当前索引没有获得可用的安装包，不能据此判断为 Python 3.10 不兼容。新版构建脚本明确使用 HTTPS 阿里云索引，失败后尝试官方 PyPI；不更改全局 pip 配置。
+
+在服务器更新并重新执行即可，已经完成的 apt 安装不需要撤销：
+
+```bash
+git pull --ff-only
+JOBS=4 bash scripts/bootstrap_autodl.sh
+```
+
+也可以优先使用官方索引：
+
+```bash
+SLAM_PIP_INDEX_URL=https://pypi.org/simple JOBS=4 bash scripts/bootstrap_autodl.sh
+```
+
+`ldconfig ... libnvidia-*.so ... is empty, not checked` 与上述 pip 索引失败属于不同环节。如果安装继续到 pip，说明这些提示没有使本次 apt 阶段停止；仅凭这些信息不能确认容器的 GPU/图形库完整性。不要为解决 NumPy 下载失败删除 NVIDIA 库或重装驱动。后续若 CMake 或动态链接明确报 GL/EGL/NVIDIA 库错误，再根据那条实际错误检查容器环境。
+
 本地测试命令：
 
 ```bash
